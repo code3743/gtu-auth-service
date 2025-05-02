@@ -1,4 +1,4 @@
-package com.gtu.auth_service.infraestructure.client.dto;
+package com.gtu.auth_service.infrastructure.client.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,4 +12,5 @@ public class UserServiceResponse {
     private String name;
     private String email;
     private String password;
+    private String role;
 }

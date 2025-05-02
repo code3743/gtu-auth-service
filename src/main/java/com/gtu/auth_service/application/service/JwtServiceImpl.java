@@ -1,4 +1,4 @@
-package com.gtu.auth_service.infraestructure.service;
+package com.gtu.auth_service.application.service;
 
 
 import java.util.Date;
@@ -7,22 +7,23 @@ import javax.crypto.SecretKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.gtu.auth_service.infraestructure.client.dto.UserServiceResponse;
+import com.gtu.auth_service.domain.model.AuthUser;
+import com.gtu.auth_service.domain.service.JwtService;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 @Service
-public class JwtService {
+public class JwtServiceImpl implements JwtService {
     @Value("${JWT_SECRET}")
     private String secretKey;
     private long jwtExpiration;
-    public JwtService(){
+    public JwtServiceImpl(){
         jwtExpiration = 30L * 60000;
     }
 
-    public String generateToken(UserServiceResponse userDetails) {
+    public String generateToken(AuthUser userDetails) {
         return buildToken(userDetails, jwtExpiration);
     }
 
@@ -32,14 +33,15 @@ public class JwtService {
 
     private String buildToken(
             
-            UserServiceResponse userDetails,
+            AuthUser userDetails,
             long expiration
     ) {
         return Jwts
                 .builder()
-                .claim("user-id", userDetails.getId())
-                .claim("user-email", userDetails.getEmail())
-                .claim("user-name", userDetails.getName())
+                .claim("user-id", userDetails.id())
+                .claim("user-email", userDetails.email())
+                .claim("user-name", userDetails.name())
+                .claim("user-role", userDetails.role().name())
                 .signWith(getSignInKey())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
                 .compact();
