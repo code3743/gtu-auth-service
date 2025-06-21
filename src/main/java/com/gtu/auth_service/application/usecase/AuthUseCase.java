@@ -8,16 +8,19 @@ import com.gtu.auth_service.infrastructure.security.PasswordValidator;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.service.AuthService;
 import com.gtu.auth_service.domain.service.JwtService;
+import com.gtu.auth_service.domain.service.ResetPasswordService;
 
 @Service
 public class AuthUseCase {
     private final AuthService authService;
     private final JwtService jwtService;
+    private final ResetPasswordService resetPasswordService;
     private final PasswordValidator PasswordValidator;
 
-    public AuthUseCase(AuthService authService, JwtService jwtService, PasswordValidator PasswordValidator) {
+    public AuthUseCase(AuthService authService, JwtService jwtService, ResetPasswordService resetPasswordService, PasswordValidator PasswordValidator) {
         this.authService = authService;
         this.jwtService = jwtService;
+        this.resetPasswordService = resetPasswordService;
         this.PasswordValidator = PasswordValidator;
     }
 
@@ -37,5 +40,13 @@ public class AuthUseCase {
                 user.email(),
                 user.role().name()
         );
+    }
+
+    public void resetPasswordRequest(String email){
+        resetPasswordService.requestPasswordReset(email);
+    }
+
+    public void resetPassword(String token, String newPassword){
+        resetPasswordService.resetPassword(token, newPassword);
     }
 }
