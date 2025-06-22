@@ -2,6 +2,7 @@ package com.gtu.auth_service.presentation.rest;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.application.usecase.AuthUseCase;
 import com.gtu.auth_service.application.dto.ResponseDTO;
 import jakarta.validation.Valid;
@@ -34,5 +35,11 @@ public class AuthController {
     public ResponseEntity<ResponseDTO<Void>> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         authUseCase.resetPassword(token, newPassword);
         return ResponseEntity.ok(new ResponseDTO<>("Password reset successful", null, 200));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ResponseDTO<LoginResponseDTO>> registerPassenger(@Valid @RequestBody RegisterRequestDTO request) {
+        LoginResponseDTO response = authUseCase.registerPassenger(request);
+        return ResponseEntity.status(201).body(new ResponseDTO<>("Registration successful", response, 201));
     }
 }

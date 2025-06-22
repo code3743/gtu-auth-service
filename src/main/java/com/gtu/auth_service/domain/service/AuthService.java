@@ -7,4 +7,5 @@ import com.gtu.auth_service.domain.model.AuthUser;
 public interface AuthService {
     LoginResponseDTO authenticate(LoginRequestDTO request);
     AuthUser findUserByEmail(String email);
+    AuthUser registerPassenger(String name, String email, String password);
 }
