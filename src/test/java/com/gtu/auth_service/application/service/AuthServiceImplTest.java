@@ -1,5 +1,6 @@
 package com.gtu.auth_service.application.service;
 
+import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
@@ -13,6 +14,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 class AuthServiceImplTest {
@@ -45,7 +47,7 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void findUserByEmail_WhenNoUserOrPassengerExists_ShouldReturnNull() {
+    void findUserByEmail_WhenNoUserDoesNotExist_ShouldReturnNull() {
         when(userClient.getUserByEmail("nonexistent@example.com")).thenReturn(null);
         when(passengerClient.getPassengerByEmail("nonexistent@example.com")).thenReturn(null);
 
@@ -55,27 +57,37 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void mapToRole_WhenValidRole_ShouldMapCorrectly() {
+    void mapToRole_WhenRoleIsSuperAdmin_ShouldReturnSuperAdmin() {
         assertEquals(Role.SUPERADMIN, authService.mapToRole("SUPERADMIN"));
+    }
+
+    @Test
+    void mapToRole_WhenRoleIsAdmin_ShouldReturnAdmin() {
         assertEquals(Role.ADMIN, authService.mapToRole("ADMIN"));
+    }
+
+    @Test
+    void mapToRole_WhenRoleIsDriver_ShouldReturnDriver() {
         assertEquals(Role.DRIVER, authService.mapToRole("DRIVER"));
     }
 
     @Test
-    void mapToRole_WhenNullRole_ShouldThrowIllegalArgumentException() {
-        try {
-            authService.mapToRole(null);
-        } catch (IllegalArgumentException e) {
-            assertEquals("Role cannot be null", e.getMessage());
-        }
+    void mapToRole_WhenRoleIsNull_ShouldThrowException() {
+        IllegalArgumentException exception = 
+            assertThrows(IllegalArgumentException.class, () -> authService.mapToRole(null));
+        assertEquals("Role cannot be null", exception.getMessage());
     }
 
     @Test
-    void mapToRole_WhenInvalidRole_ShouldThrowIllegalArgumentException() {
-        try {
-            authService.mapToRole("INVALID");
-        } catch (IllegalArgumentException e) {
-            assertEquals("Invalid role: INVALID", e.getMessage());
-        }
-    } 
+    void mapToRole_WhenRoleIsInvalid_ShouldThrowException() {
+        IllegalArgumentException exception = 
+            assertThrows(IllegalArgumentException.class, () -> authService.mapToRole("INVALID"));
+        assertEquals("Invalid role: INVALID", exception.getMessage());
+    }
+
+    @Test
+    void authenticate_ShouldThrowUnsupportedOperationException() {
+        assertThrows(UnsupportedOperationException.class, 
+            () -> authService.authenticate(new LoginRequestDTO("email", "pass")));
+    }
 }
