@@ -64,6 +64,12 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             cd ~/deploy/${{ github.event.repository.name }}
             echo "SWAGGER_SERVER_URL=${{ secrets.SWAGGER_SERVER_URL }}" > .env
+            echo "RABBITMQ_HOST=${{ secrets.RABBITMQ_HOST }}" >> .env
+            echo "RABBITMQ_USERNAME=${{ secrets.RABBITMQ_USERNAME }}" >> .env
+            echo "RABBITMQ_PASSWORD=${{ secrets.RABBITMQ_PASSWORD }}" >> .env
+            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+            echo "DATASOURCE_USERNAME=${{ secrets.DATASOURCE_USERNAME }}" >> .env
+            echo "DATASOURCE_PASSWORD=${{ secrets.DATASOURCE_PASSWORD }}" >> .env
             docker compose down --remove-orphans
             docker compose build
             docker compose up -d --remove-orphans
