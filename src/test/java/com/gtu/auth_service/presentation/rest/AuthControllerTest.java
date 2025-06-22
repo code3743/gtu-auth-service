@@ -5,7 +5,7 @@ import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
 import com.gtu.auth_service.application.usecase.AuthUseCase;
 import com.gtu.auth_service.presentation.exception.GlobalExceptionHandler;
-import com.gtu.auth_service.presentation.exception.LogPublisher;
+import com.gtu.auth_service.infrastructure.logs.LogPublisher;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
