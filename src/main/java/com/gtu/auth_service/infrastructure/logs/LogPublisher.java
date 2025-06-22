@@ -1,4 +1,4 @@
-package com.gtu.auth_service.presentation.exception;
+package com.gtu.auth_service.infrastructure.logs;
 
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.stereotype.Component;
@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.time.Instant;
 import java.util.Map;
 
 @Component

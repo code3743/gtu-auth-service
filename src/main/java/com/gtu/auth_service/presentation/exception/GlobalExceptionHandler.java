@@ -1,6 +1,8 @@
 package com.gtu.auth_service.presentation.exception;
 
 import com.gtu.auth_service.application.dto.ErrorResponseDTO;
+import com.gtu.auth_service.infrastructure.logs.LogPublisher;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
