@@ -2,6 +2,7 @@ package com.gtu.auth_service.application.service;
 
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.model.Role;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -30,7 +31,7 @@ class JwtServiceImplTest {
     }
 
     @Test
-    void generateToken_WhenUserProvided_ShouldReturnNonNullToken() {
+    void generateToken_ShouldReturnValidJwtToken_WhenUserProvided() {
         AuthUser user = new AuthUser(1L, "John Doe", "john.doe@example.com", "password", Role.DRIVER);
         String token = jwtService.generateToken(user);
 
@@ -39,8 +40,17 @@ class JwtServiceImplTest {
     }
 
     @Test
-    void getExpirationTime_ShouldReturn30Minutes() {
+    void getExpirationTime_ShouldReturnDefault30Minutes() {
         long expiration = jwtService.getExpirationTime();
-        assertEquals(30L * 60000, expiration); // 30 minutes in milliseconds
+        assertEquals(30L * 60000, expiration); 
+    }
+
+    @Test
+    void generateToken_WhenFieldsAreNull_ShouldStillGenerateToken() {
+        AuthUser user = new AuthUser(null, null, null, null, Role.DRIVER);
+        String token = jwtService.generateToken(user);
+
+        assertNotNull(token);
+        assertTrue(token.length() > 0);
     }
 }

@@ -19,7 +19,7 @@ class PasswordValidatorTest {
     }
 
     @Test
-    void validate_WhenPasswordMatches_ShouldReturnTrue() {
+    void validate_ShouldReturnTrue_WhenPasswordMatches() {
         String rawPassword = "password123";
         String encodedPassword = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(rawPassword);
 
@@ -27,7 +27,7 @@ class PasswordValidatorTest {
     }
 
     @Test
-    void validate_WhenPasswordDoesNotMatch_ShouldReturnFalse() {
+    void validate_ShouldReturnFalse_WhenPasswordDoesNotMatch() {
         String rawPassword = "password123";
         String wrongEncodedPassword = new BCryptPasswordEncoder().encode("wrongpass");
 
@@ -35,8 +35,8 @@ class PasswordValidatorTest {
     }
 
     @Test
-    void validate_WhenExceptionOccurs_ShouldReturnFalse() {
-        String rawPassword = null; 
+    void validate_ShouldReturnFalse_WhenExceptionOccurs() {
+        String rawPassword = null;
         String encodedPassword = "invalidEncoded";
 
         assertFalse(passwordValidator.validate(rawPassword, encodedPassword));
