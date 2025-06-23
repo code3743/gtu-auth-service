@@ -5,8 +5,10 @@ import com.gtu.auth_service.application.dto.LoginResponseDTO;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.domain.service.AuthService;
+import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,8 +16,11 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserClient userClient;
 
-    public AuthServiceImpl(UserClient userClient) {
+    private final PassengerClient passengerClient;
+
+    public AuthServiceImpl(UserClient userClient, PassengerClient passengerClient) {
         this.userClient = userClient;
+        this.passengerClient = passengerClient;
     }
 
     @Override
@@ -25,19 +30,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthUser findUserByEmail(String email) {
-        try {
-            UserServiceResponse user = userClient.getUserByEmail(email);
-            if (user != null) {
-                Role role = mapToRole(user.getRole());
-                return new AuthUser(
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail(),
-                        user.getPassword(),
-                        role
-                );}
-        } catch (Exception e) {
-            return null;
+        UserServiceResponse user = userClient.getUserByEmail(email);
+        if (user != null) {
+            Role role = mapToRole(user.getRole());
+            return new AuthUser(
+                    user.getId(),
+                    user.getName(),
+                    user.getEmail(),
+                    user.getPassword(),
+                    role
+            );
         }
         return null;
     }
@@ -53,4 +55,20 @@ public class AuthServiceImpl implements AuthService {
             default -> throw new IllegalArgumentException("Invalid role: " + role);
         };
     }
+
+    @Override
+    public AuthUser findPassengerByEmail(String email) {
+        UserServiceResponse passengerResponse = passengerClient.getPassengerByEmail(email);
+        if (passengerResponse != null) {
+            return new AuthUser(
+                    passengerResponse.getId(),
+                    passengerResponse.getName(),
+                    passengerResponse.getEmail(),
+                    passengerResponse.getPassword(),
+                    Role.PASSENGER
+            );
+        }
+        return null;
+    }
+
 }

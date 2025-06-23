@@ -14,6 +14,7 @@ public class AuthController {
 
     private final AuthUseCase authUseCase;
 
+
     public AuthController(AuthUseCase authUseCase) {
         this.authUseCase = authUseCase;
     }
@@ -22,6 +23,12 @@ public class AuthController {
     public ResponseEntity<ResponseDTO<LoginResponseDTO>> login(@Valid @RequestBody LoginRequestDTO request) {
         LoginResponseDTO response = authUseCase.login(request);
         return ResponseEntity.status(200).body(new ResponseDTO<>("Login successful", response, 200));
+    }
+
+    @PostMapping("/login-passenger")
+    public ResponseEntity<ResponseDTO<LoginResponseDTO>> loginPassenger(@Valid @RequestBody LoginRequestDTO request) {
+        LoginResponseDTO response = authUseCase.loginPassenger(request);
+        return ResponseEntity.status(200).body(new ResponseDTO<>("Passenger login successful", response, 200));
     }
 
     @PostMapping("/reset-password-request")
