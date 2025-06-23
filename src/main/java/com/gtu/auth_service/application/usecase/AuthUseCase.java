@@ -43,6 +43,24 @@ public class AuthUseCase {
         );
     }
 
+    public LoginResponseDTO loginPassenger(LoginRequestDTO request) {
+        AuthUser passenger = authService.findPassengerByEmail(request.email());
+        if (passenger == null) {
+            throw new IllegalArgumentException("Passenger not found");
+        }
+        if (!PasswordValidator.validate(request.password(), passenger.password())) {
+            throw new IllegalArgumentException("Invalid password");
+        }
+        String token = jwtService.generateToken(passenger);
+        return new LoginResponseDTO(
+                token,
+                passenger.id(),
+                passenger.name(),
+                passenger.email(),
+                passenger.role().name()
+        );
+    }
+
     public void resetPasswordRequest(String email){
         resetPasswordService.requestPasswordReset(email);
     }

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.gtu.auth_service.infrastructure.client.dto.PassengerRequest;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
 
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
@@ -23,5 +23,5 @@ public interface PassengerClient {
     void resetPassword(@PathVariable Long id, @RequestParam String newPassword);
 
     @PostMapping
-    UserServiceResponse registerPassenger(@RequestBody PassengerRequest request);
+    UserServiceResponse registerPassenger(@RequestBody RegisterRequestDTO request);
 }
