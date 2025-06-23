@@ -3,6 +3,7 @@ package com.gtu.auth_service.presentation.rest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.application.usecase.AuthUseCase;
 import com.gtu.auth_service.presentation.exception.GlobalExceptionHandler;
 import com.gtu.auth_service.infrastructure.logs.LogPublisher;
@@ -130,5 +131,24 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"))
                 .andExpect(jsonPath("$.message").value("Invalid or expired token"));
+    }
+
+    @Test
+    void registerPassenger_ShouldReturnSuccess_WhenRegistrationSucceeds() throws Exception {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        LoginResponseDTO response = new LoginResponseDTO("jwt-token", 1L, "Jane Doe", "jane@example.com", "PASSENGER");
+
+        Mockito.when(authUseCase.registerPassenger(Mockito.any(RegisterRequestDTO.class))).thenReturn(response);
+
+        mockMvc.perform(post("/register")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(objectMapper.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.message").value("Registration successful"))
+        .andExpect(jsonPath("$.data.accessToken").value("jwt-token"))
+        .andExpect(jsonPath("$.data.email").value("jane@example.com"))
+        .andExpect(jsonPath("$.data.role").value("PASSENGER"));
+
+
     }
 }

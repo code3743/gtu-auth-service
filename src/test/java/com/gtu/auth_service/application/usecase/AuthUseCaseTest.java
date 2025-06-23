@@ -2,6 +2,7 @@ package com.gtu.auth_service.application.usecase;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.application.service.AuthServiceImpl;
 import com.gtu.auth_service.application.service.JwtServiceImpl;
 import com.gtu.auth_service.domain.model.AuthUser;
@@ -95,5 +96,22 @@ public class AuthUseCaseTest {
         authUseCase.resetPassword(token, newPassword);
 
         verify(resetPasswordService, times(1)).resetPassword(token, newPassword);
+    }
+
+    @Test
+    void registerPassenger_ShouldReturnLoginResponse_WhenRegistrationSucceeds() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        AuthUser user = new AuthUser(null, "Jane Doe", "jane@example.com", "pass123", Role.PASSENGER);
+        String token = "mocked-jwt-token";
+
+        when(authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")).thenReturn(user);
+        when(jwtService.generateToken(user)).thenReturn(token);
+
+        LoginResponseDTO response = authUseCase.registerPassenger(request);
+
+        assertEquals(token, response.accessToken());
+        assertEquals("Jane Doe", response.name());
+        assertEquals("jane@example.com", response.email());
+        assertEquals("PASSENGER", response.role());
     }
 }
