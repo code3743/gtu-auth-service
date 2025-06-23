@@ -114,4 +114,12 @@ public class AuthUseCaseTest {
         assertEquals("jane@example.com", response.email());
         assertEquals("PASSENGER", response.role());
     }
+
+    @Test
+    void registerPassenger_ShouldThrowException_WhenRegistrationFails() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        when(authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.registerPassenger(request));
+    }
 }

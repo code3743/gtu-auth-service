@@ -148,7 +148,17 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.data.accessToken").value("jwt-token"))
         .andExpect(jsonPath("$.data.email").value("jane@example.com"))
         .andExpect(jsonPath("$.data.role").value("PASSENGER"));
+    }
 
+    @Test
+    void registerPassenger_ShouldHandleValidationError() throws Exception {
+        RegisterRequestDTO invalidRequest = new RegisterRequestDTO("", "", ""); // Campos nulos
+        Mockito.when(authUseCase.registerPassenger(invalidRequest)).thenThrow(new IllegalArgumentException("Validation failed"));
 
+        mockMvc.perform(post("/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Validation failed"));
     }
 }

@@ -119,4 +119,13 @@ class AuthServiceImplTest {
         assertEquals("pass123", result.password());
         assertEquals(Role.PASSENGER, result.role());
     }
+
+    @Test
+    void findPassengerByEmail_WhenPassengerNotFound_ShouldReturnNull() {
+        when(passengerClient.getPassengerByEmail("nonexistent@example.com")).thenReturn(null);
+
+        AuthUser result = authService.findPassengerByEmail("nonexistent@example.com");
+
+        assertNull(result);
+    }
 }

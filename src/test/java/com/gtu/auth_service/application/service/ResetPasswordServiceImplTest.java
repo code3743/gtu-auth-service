@@ -183,4 +183,15 @@ class ResetPasswordServiceImplTest {
         verify(userClient, times(1)).resetPassword(1L, "newPass");
         verify(resetTokenRepository, times(1)).save(any());
     }
+
+    @Test
+    void resetPassword_ShouldThrowException_WhenNoUserOrPassengerFound() {
+        ResetToken resetToken = new ResetToken(1L, "token123", "nonexistent@example.com", LocalDateTime.now().plusMinutes(10), false);
+        when(resetTokenRepository.findByToken("token123")).thenReturn(Optional.of(resetToken));
+        when(userClient.getUserByEmail("nonexistent@example.com")).thenThrow(RuntimeException.class);
+        when(passengerClient.getPassengerByEmail("nonexistent@example.com")).thenThrow(RuntimeException.class);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                resetPasswordService.resetPassword("token123", "newPass"));
+    }
 }

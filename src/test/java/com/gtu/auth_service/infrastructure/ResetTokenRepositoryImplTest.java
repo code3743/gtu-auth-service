@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -46,5 +47,14 @@ class ResetTokenRepositoryImplTest {
         boolean result = resetTokenRepository.existsByEmail("email@example.com");
 
         assertTrue(result);
+    }
+
+    @Test
+    void existsByEmail_ShouldReturnFalse_WhenEmailNotExists() {
+        when(jpaResetTokenRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        boolean result = resetTokenRepository.existsByEmail("nonexistent@example.com");
+
+        assertFalse(result);
     }
 }
