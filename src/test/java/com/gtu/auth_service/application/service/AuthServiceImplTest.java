@@ -128,4 +128,16 @@ class AuthServiceImplTest {
 
         assertNull(result);
     }
+
+    @Test
+    void registerPassenger_ShouldThrowException_WhenRegistrationFails() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        when(passengerClient.registerPassenger(request)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")
+        );
+
+        assertEquals("Failed to register passenger", exception.getMessage());
+    }
 }

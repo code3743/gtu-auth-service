@@ -122,4 +122,44 @@ public class AuthUseCaseTest {
 
         assertThrows(IllegalArgumentException.class, () -> authUseCase.registerPassenger(request));
     }
+
+    @Test
+    void loginPassenger_ShouldReturnLoginResponse_WhenCredentialsAreValid() {
+        LoginRequestDTO request = new LoginRequestDTO("passenger@example.com", "password123");
+        AuthUser passenger = new AuthUser(2L, "Jane Passenger", "passenger@example.com", "encodedPass", Role.PASSENGER);
+        String token = "mocked-passenger-jwt-token";
+
+        when(authService.findPassengerByEmail("passenger@example.com")).thenReturn(passenger);
+        when(passwordValidator.validate("password123", "encodedPass")).thenReturn(true);
+        when(jwtService.generateToken(passenger)).thenReturn(token);
+
+        LoginResponseDTO response = authUseCase.loginPassenger(request);
+
+        assertEquals(token, response.accessToken());
+        assertEquals(2L, response.userId());
+        assertEquals("Jane Passenger", response.name());
+        assertEquals("passenger@example.com", response.email());
+        assertEquals("PASSENGER", response.role());
+    }
+
+    @Test
+    void loginPassenger_ShouldThrowException_WhenPassengerNotFound() {
+        LoginRequestDTO request = new LoginRequestDTO("missing@example.com", "password");
+
+        when(authService.findPassengerByEmail("missing@example.com")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.loginPassenger(request));
+    }
+
+
+    @Test
+    void loginPassenger_ShouldThrowException_WhenInvalidPassword() {
+        LoginRequestDTO request = new LoginRequestDTO("passenger@example.com", "wrongpass");
+        AuthUser passenger = new AuthUser(2L, "Jane Passenger", "passenger@example.com", "encodedPass", Role.PASSENGER);
+
+        when(authService.findPassengerByEmail("passenger@example.com")).thenReturn(passenger);
+        when(passwordValidator.validate("wrongpass", "encodedPass")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.loginPassenger(request));
+    }
 }

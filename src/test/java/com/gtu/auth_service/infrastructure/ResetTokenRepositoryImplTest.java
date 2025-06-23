@@ -57,4 +57,29 @@ class ResetTokenRepositoryImplTest {
 
         assertFalse(result);
     }
+
+    @Test
+    void findByEmailAndUsedFalse_ShouldReturnResetToken_WhenExists() {
+        ResetTokenEntity entity = new ResetTokenEntity(2L, "token456", "email2@example.com", LocalDateTime.now(), false);
+        when(jpaResetTokenRepository.findByEmailAndUsedFalse("email2@example.com")).thenReturn(Optional.of(entity));
+
+        Optional<ResetToken> result = resetTokenRepository.findByEmailAndUsedFalse("email2@example.com");
+
+        assertTrue(result.isPresent());
+        assertEquals("token456", result.get().getToken());
+    }
+
+    @Test
+    void save_ShouldInvokeJpaRepositorySave() {
+        ResetToken domainToken = new ResetToken();
+        domainToken.setId(3L);
+        domainToken.setToken("token789");
+        domainToken.setEmail("save@example.com");
+        domainToken.setExpiryDate(LocalDateTime.now());
+        domainToken.setUsed(false);
+
+        resetTokenRepository.save(domainToken);
+    }
+
+
 }
