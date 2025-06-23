@@ -2,6 +2,7 @@ package com.gtu.auth_service.application.usecase;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.application.service.AuthServiceImpl;
 import com.gtu.auth_service.application.service.JwtServiceImpl;
 import com.gtu.auth_service.domain.model.AuthUser;
@@ -95,5 +96,70 @@ public class AuthUseCaseTest {
         authUseCase.resetPassword(token, newPassword);
 
         verify(resetPasswordService, times(1)).resetPassword(token, newPassword);
+    }
+
+    @Test
+    void registerPassenger_ShouldReturnLoginResponse_WhenRegistrationSucceeds() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        AuthUser user = new AuthUser(null, "Jane Doe", "jane@example.com", "pass123", Role.PASSENGER);
+        String token = "mocked-jwt-token";
+
+        when(authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")).thenReturn(user);
+        when(jwtService.generateToken(user)).thenReturn(token);
+
+        LoginResponseDTO response = authUseCase.registerPassenger(request);
+
+        assertEquals(token, response.accessToken());
+        assertEquals("Jane Doe", response.name());
+        assertEquals("jane@example.com", response.email());
+        assertEquals("PASSENGER", response.role());
+    }
+
+    @Test
+    void registerPassenger_ShouldThrowException_WhenRegistrationFails() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        when(authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.registerPassenger(request));
+    }
+
+    @Test
+    void loginPassenger_ShouldReturnLoginResponse_WhenCredentialsAreValid() {
+        LoginRequestDTO request = new LoginRequestDTO("passenger@example.com", "password123");
+        AuthUser passenger = new AuthUser(2L, "Jane Passenger", "passenger@example.com", "encodedPass", Role.PASSENGER);
+        String token = "mocked-passenger-jwt-token";
+
+        when(authService.findPassengerByEmail("passenger@example.com")).thenReturn(passenger);
+        when(passwordValidator.validate("password123", "encodedPass")).thenReturn(true);
+        when(jwtService.generateToken(passenger)).thenReturn(token);
+
+        LoginResponseDTO response = authUseCase.loginPassenger(request);
+
+        assertEquals(token, response.accessToken());
+        assertEquals(2L, response.userId());
+        assertEquals("Jane Passenger", response.name());
+        assertEquals("passenger@example.com", response.email());
+        assertEquals("PASSENGER", response.role());
+    }
+
+    @Test
+    void loginPassenger_ShouldThrowException_WhenPassengerNotFound() {
+        LoginRequestDTO request = new LoginRequestDTO("missing@example.com", "password");
+
+        when(authService.findPassengerByEmail("missing@example.com")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.loginPassenger(request));
+    }
+
+
+    @Test
+    void loginPassenger_ShouldThrowException_WhenInvalidPassword() {
+        LoginRequestDTO request = new LoginRequestDTO("passenger@example.com", "wrongpass");
+        AuthUser passenger = new AuthUser(2L, "Jane Passenger", "passenger@example.com", "encodedPass", Role.PASSENGER);
+
+        when(authService.findPassengerByEmail("passenger@example.com")).thenReturn(passenger);
+        when(passwordValidator.validate("wrongpass", "encodedPass")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> authUseCase.loginPassenger(request));
     }
 }

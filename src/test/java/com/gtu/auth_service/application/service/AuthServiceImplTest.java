@@ -1,6 +1,7 @@
 package com.gtu.auth_service.application.service;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
@@ -89,5 +90,54 @@ class AuthServiceImplTest {
     void authenticate_ShouldThrowUnsupportedOperationException() {
         assertThrows(UnsupportedOperationException.class, 
             () -> authService.authenticate(new LoginRequestDTO("email", "pass")));
+    }
+
+    @Test
+    void findPassengerByEmail_WhenPassengerExists_ShouldReturnAuthUser() {
+        UserServiceResponse passengerResponse = new UserServiceResponse(2L, "Jane Doe", "jane@example.com", "encodedPass", null);
+        when(passengerClient.getPassengerByEmail("jane@example.com")).thenReturn(passengerResponse);
+
+        AuthUser result = authService.findPassengerByEmail("jane@example.com");
+
+        assertEquals(2L, result.id());
+        assertEquals("Jane Doe", result.name());
+        assertEquals("jane@example.com", result.email());
+        assertEquals("encodedPass", result.password());
+        assertEquals(Role.PASSENGER, result.role());
+    }
+
+    @Test
+    void registerPassenger_ShouldReturnAuthUser_WhenRegistrationSucceeds() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        UserServiceResponse response = new UserServiceResponse(null, "Jane Doe", "jane@example.com", "pass123", null);
+        when(passengerClient.registerPassenger(request)).thenReturn(response);
+
+        AuthUser result = authService.registerPassenger("Jane Doe", "jane@example.com", "pass123");
+
+        assertEquals("Jane Doe", result.name());
+        assertEquals("jane@example.com", result.email());
+        assertEquals("pass123", result.password());
+        assertEquals(Role.PASSENGER, result.role());
+    }
+
+    @Test
+    void findPassengerByEmail_WhenPassengerNotFound_ShouldReturnNull() {
+        when(passengerClient.getPassengerByEmail("nonexistent@example.com")).thenReturn(null);
+
+        AuthUser result = authService.findPassengerByEmail("nonexistent@example.com");
+
+        assertNull(result);
+    }
+
+    @Test
+    void registerPassenger_ShouldThrowException_WhenRegistrationFails() {
+        RegisterRequestDTO request = new RegisterRequestDTO("Jane Doe", "jane@example.com", "pass123");
+        when(passengerClient.registerPassenger(request)).thenReturn(null);
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            authService.registerPassenger("Jane Doe", "jane@example.com", "pass123")
+        );
+
+        assertEquals("Failed to register passenger", exception.getMessage());
     }
 }

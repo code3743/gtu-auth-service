@@ -1,6 +1,7 @@
 package com.gtu.auth_service.application.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.gtu.auth_service.domain.model.ResetToken;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.domain.repository.ResetTokenRepository;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
@@ -11,9 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class ResetPasswordServiceImplTest {
@@ -145,5 +150,67 @@ class ResetPasswordServiceImplTest {
         var field = ResetPasswordServiceImpl.class.getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    @Test
+    void requestPasswordReset_ShouldSaveToken_WhenUserExists() {
+        UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
+        when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
+        when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.empty());
+
+        resetPasswordService.requestPasswordReset("john@example.com");
+
+        verify(resetTokenRepository, times(1)).save(any());
+    }
+
+    @Test
+    void requestPasswordReset_ShouldThrowException_WhenTokenExists() {
+        UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
+        when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
+        when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.of(new ResetToken()));
+
+        assertThrows(IllegalStateException.class, () -> resetPasswordService.requestPasswordReset("john@example.com"));
+    }
+
+    @Test
+    void resetPassword_ShouldCallUserClient_WhenUserExists() {
+        ResetToken resetToken = new ResetToken(1L, "token123", "john@example.com", LocalDateTime.now().plusMinutes(10), false);
+        when(resetTokenRepository.findByToken("token123")).thenReturn(Optional.of(resetToken));
+        when(userClient.getUserByEmail("john@example.com")).thenReturn(new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER"));
+
+        resetPasswordService.resetPassword("token123", "newPass");
+
+        verify(userClient, times(1)).resetPassword(1L, "newPass");
+        verify(resetTokenRepository, times(1)).save(any());
+    }
+
+    @Test
+    void resetPassword_ShouldThrowException_WhenNoUserOrPassengerFound() {
+        ResetToken resetToken = new ResetToken(1L, "token123", "nonexistent@example.com", LocalDateTime.now().plusMinutes(10), false);
+        when(resetTokenRepository.findByToken("token123")).thenReturn(Optional.of(resetToken));
+        when(userClient.getUserByEmail("nonexistent@example.com")).thenThrow(RuntimeException.class);
+        when(passengerClient.getPassengerByEmail("nonexistent@example.com")).thenThrow(RuntimeException.class);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                resetPasswordService.resetPassword("token123", "newPass"));
+    }
+
+    @Test
+    void getPassengerIdByEmail_ShouldReturnId_WhenPassengerExists() {
+        UserServiceResponse passenger = new UserServiceResponse(5L, "Maria", "maria@example.com", "pass", null);
+        when(passengerClient.getPassengerByEmail("maria@example.com")).thenReturn(passenger);
+
+        Long result = resetPasswordService.getPassengerIdByEmail("maria@example.com");
+
+        assertEquals(5L, result);
+    }
+
+    @Test
+    void getPassengerIdByEmail_ShouldReturnNull_WhenExceptionOccurs() {
+        when(passengerClient.getPassengerByEmail("fail@example.com")).thenThrow(new RuntimeException("boom"));
+
+        Long result = resetPasswordService.getPassengerIdByEmail("fail@example.com");
+
+        assertNull(result);
     }
 }
