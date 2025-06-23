@@ -6,6 +6,8 @@ import com.gtu.auth_service.domain.repository.ResetTokenRepository;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
+import com.gtu.auth_service.infrastructure.logs.LogPublisher;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -35,6 +37,8 @@ class ResetPasswordServiceImplTest {
 
     private ObjectMapper objectMapper;
 
+    private LogPublisher logPublisher;
+
     @BeforeEach
     void setUp() throws Exception {
         MockitoAnnotations.openMocks(this);
@@ -44,7 +48,8 @@ class ResetPasswordServiceImplTest {
                 passengerClient,
                 resetTokenRepository,
                 rabbitTemplate,
-                objectMapper
+                objectMapper,
+                logPublisher
         );
 
         setField("passengerResetLink", "http://reset/passenger");
@@ -120,7 +125,7 @@ class ResetPasswordServiceImplTest {
     @Test
     void sendResetEmailEvent_ShouldThrowException_WhenObjectMapperFails() throws Exception {
         ResetPasswordServiceImpl service = new ResetPasswordServiceImpl(
-                userClient, passengerClient, resetTokenRepository, rabbitTemplate, mock(ObjectMapper.class)
+                userClient, passengerClient, resetTokenRepository, rabbitTemplate, mock(ObjectMapper.class), logPublisher
         );
         setFieldOnInstance(service, "adminResetLink", "http://reset/admin");
         setFieldOnInstance(service, "driverResetLink", "http://reset/driver");
@@ -131,7 +136,7 @@ class ResetPasswordServiceImplTest {
         when(failingMapper.writeValueAsString(any())).thenThrow(new RuntimeException("Mapper error"));
 
         var serviceWithFailingMapper = new ResetPasswordServiceImpl(
-                userClient, passengerClient, resetTokenRepository, rabbitTemplate, failingMapper);
+                userClient, passengerClient, resetTokenRepository, rabbitTemplate, failingMapper, logPublisher);
 
         setFieldOnInstance(serviceWithFailingMapper, "adminResetLink", "http://reset/admin");
 
