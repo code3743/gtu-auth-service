@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.infrastructure.security.PasswordValidator;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.service.AuthService;
@@ -48,5 +49,22 @@ public class AuthUseCase {
 
     public void resetPassword(String token, String newPassword){
         resetPasswordService.resetPassword(token, newPassword);
+    }
+
+
+    public LoginResponseDTO registerPassenger(RegisterRequestDTO request) {
+        AuthUser user = authService.registerPassenger(request.getName(), request.getEmail(), request.getPassword());
+        if (user == null) {
+            throw new IllegalArgumentException("Registration failed");
+        }
+
+        String token = jwtService.generateToken(user);
+        return new LoginResponseDTO(
+                token,
+                user.id(),
+                user.name(),
+                user.email(),
+                user.role().name()
+        );
     }
 }
