@@ -14,32 +14,13 @@ public class LogCheckService {
         this.logPublisher = logPublisher;
     }
 
-    public void checkRabbitMQConnection() {
-        try {
-            logPublisher.sendLog(
-                Instant.now().toString(),
-                "auth-service",
-                "INFO",
-                "RabbitMQ connection verified",
-                Map.of()
-            );
-            System.out.println("✅ RabbitMQ connection is active.");
-            logPublisher.processPendingLogs();
-            
-        } catch (Exception e) {
-            System.err.println("❌ RabbitMQ connection failed: " + e.getMessage());
-            logPublisher.saveLogToFile(
-                Map.of(
-                    "timestamp", Instant.now().toString(),
-                    "service", "auth-service",
-                    "level", "ERROR",
-                    "message", "Failed to connect to RabbitMQ",
-                    "details", Map.of("error", e.getMessage())
-                )
-            );
-        }
+    public void checkRabbitMQConnection() throws InterruptedException {  
+        logPublisher.sendLog(
+            Instant.now().toString(),
+            "auth-service",
+            "INFO",
+            "RabbitMQ connection verified",
+            Map.of()
+        );  
     }
-
-
-
 }
