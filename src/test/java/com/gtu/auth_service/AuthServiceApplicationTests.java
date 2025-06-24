@@ -18,6 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 class AuthServiceApplicationTests {
     @Test
     void contextLoads() {
+        // This test ensures that the Spring context is loaded correctly.
     }
 }
 
