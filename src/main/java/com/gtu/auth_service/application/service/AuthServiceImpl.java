@@ -7,11 +7,14 @@ import org.springframework.stereotype.Service;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.domain.model.AuthUser;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.domain.service.AuthService;
+import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
+
 import com.gtu.auth_service.infrastructure.logs.LogPublisher; 
 
 @Service
@@ -19,10 +22,12 @@ public class AuthServiceImpl implements AuthService {
     
 
     private final UserClient userClient;
+    private final PassengerClient passengerClient;
     private final LogPublisher logPublisher;
 
-    public AuthServiceImpl(UserClient userClient, LogPublisher logPublisher) {
+    public AuthServiceImpl(UserClient userClient, PassengerClient passengerClient, LogPublisher logPublisher) {
         this.userClient = userClient;
+        this.passengerClient = passengerClient;
         this.logPublisher = logPublisher;
     }
 
@@ -69,4 +74,35 @@ public class AuthServiceImpl implements AuthService {
             default -> throw new IllegalArgumentException("Invalid role: " + role);
         };
     }
+
+    @Override
+    public AuthUser registerPassenger(String name, String email, String password) {
+       var newPassenger = passengerClient.registerPassenger(
+                new RegisterRequestDTO(name, email, password));
+        if (newPassenger == null) throw new  IllegalArgumentException("Failed to register passenger");
+
+        return new AuthUser(
+                null,
+                newPassenger.getName(),
+                newPassenger.getEmail(),
+                newPassenger.getPassword(),
+                Role.PASSENGER 
+        );
+    }
+
+    @Override
+    public AuthUser findPassengerByEmail(String email) {
+        UserServiceResponse passengerResponse = passengerClient.getPassengerByEmail(email);
+        if (passengerResponse != null) {
+            return new AuthUser(
+                    passengerResponse.getId(),
+                    passengerResponse.getName(),
+                    passengerResponse.getEmail(),
+                    passengerResponse.getPassword(),
+                    Role.PASSENGER
+            );
+        }
+        return null;
+    }
+
 }

@@ -2,6 +2,7 @@ package com.gtu.auth_service.presentation.rest;
 
 import com.gtu.auth_service.application.dto.LoginRequestDTO;
 import com.gtu.auth_service.application.dto.LoginResponseDTO;
+import com.gtu.auth_service.application.dto.RegisterRequestDTO;
 import com.gtu.auth_service.application.usecase.AuthUseCase;
 import com.gtu.auth_service.application.dto.ResponseDTO;
 import jakarta.validation.Valid;
@@ -14,6 +15,7 @@ public class AuthController {
 
     private final AuthUseCase authUseCase;
 
+
     public AuthController(AuthUseCase authUseCase) {
         this.authUseCase = authUseCase;
     }
@@ -22,6 +24,12 @@ public class AuthController {
     public ResponseEntity<ResponseDTO<LoginResponseDTO>> login(@Valid @RequestBody LoginRequestDTO request) {
         LoginResponseDTO response = authUseCase.login(request);
         return ResponseEntity.status(200).body(new ResponseDTO<>("Login successful", response, 200));
+    }
+
+    @PostMapping("/login-passenger")
+    public ResponseEntity<ResponseDTO<LoginResponseDTO>> loginPassenger(@Valid @RequestBody LoginRequestDTO request) {
+        LoginResponseDTO response = authUseCase.loginPassenger(request);
+        return ResponseEntity.status(200).body(new ResponseDTO<>("Passenger login successful", response, 200));
     }
 
     @PostMapping("/reset-password-request")
@@ -34,5 +42,11 @@ public class AuthController {
     public ResponseEntity<ResponseDTO<Void>> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         authUseCase.resetPassword(token, newPassword);
         return ResponseEntity.ok(new ResponseDTO<>("Password reset successful", null, 200));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ResponseDTO<LoginResponseDTO>> registerPassenger(@Valid @RequestBody RegisterRequestDTO request) {
+        LoginResponseDTO response = authUseCase.registerPassenger(request);
+        return ResponseEntity.status(201).body(new ResponseDTO<>("Registration successful", response, 201));
     }
 }
