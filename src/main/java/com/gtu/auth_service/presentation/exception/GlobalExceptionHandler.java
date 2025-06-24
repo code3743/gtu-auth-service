@@ -48,14 +48,13 @@ public class GlobalExceptionHandler {
             severity = "CRITICAL";
         }
 
-        String errorId = UUID.randomUUID().toString();
         logPublisher.sendLog(Instant.now().toString(), 
                             serviceName, 
                             severity, 
                             "Unexpected error occurred",
                             Map.of("error", ex.getMessage()));
 
-        ErrorResponseDTO error = new ErrorResponseDTO("An unexpected error occurred. Error ID: " + errorId, HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error");
+        ErrorResponseDTO error = new ErrorResponseDTO("An unexpected error occurred" , HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error");
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

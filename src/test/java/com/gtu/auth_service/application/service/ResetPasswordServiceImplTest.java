@@ -42,6 +42,7 @@ class ResetPasswordServiceImplTest {
 
     private ObjectMapper objectMapper;
 
+    @Mock
     private LogPublisher logPublisher;
 
     @BeforeEach
@@ -162,7 +163,8 @@ class ResetPasswordServiceImplTest {
         UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
         when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
         when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.empty());
-
+        
+        doNothing().when(rabbitTemplate).convertAndSend(anyString(), anyString(), anyString());
         resetPasswordService.requestPasswordReset("john@example.com");
 
         verify(resetTokenRepository, times(1)).save(any());

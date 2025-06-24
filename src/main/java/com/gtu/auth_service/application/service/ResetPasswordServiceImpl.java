@@ -95,7 +95,7 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
                 "Failed to request password reset",
                 Map.of("email", email, "error", e.getMessage())
             );
-            throw e;
+            throw new IllegalStateException("Failed to request password reset: " + e.getMessage(), e);
         }
     }
 
