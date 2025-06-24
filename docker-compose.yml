@@ -14,10 +14,10 @@ services:
       - SPRING_RABBITMQ_USERNAME=${RABBITMQ_USERNAME}
       - SPRING_RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
-      - RESET_LINK_PASSENGER=https://gtu-admin.netlify.app/
-      - RESET_LINK_DRIVER=https://gtu-admin.netlify.app/
-      - RESET_LINK_ADMIN=https://gtu-admin.netlify.app/
-      - RESET_LINK_SUPERADMIN=https://gtu-admin.netlify.app/
+      - RESET_LINK_PASSENGER=https://gtu-admin.netlify.app/reset-password
+      - RESET_LINK_DRIVER=https://gtu-admin.netlify.app/reset-password
+      - RESET_LINK_ADMIN=https://gtu-admin.netlify.app/reset-password
+      - RESET_LINK_SUPERADMIN=https://gtu-admin.netlify.app/reset-password
       - SERVER_PORT=0
     volumes:
       - ./data:/data
