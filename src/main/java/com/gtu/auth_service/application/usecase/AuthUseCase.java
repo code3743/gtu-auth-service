@@ -16,13 +16,13 @@ public class AuthUseCase {
     private final AuthService authService;
     private final JwtService jwtService;
     private final ResetPasswordService resetPasswordService;
-    private final PasswordValidator PasswordValidator;
+    private final PasswordValidator passwordValidator;
 
-    public AuthUseCase(AuthService authService, JwtService jwtService, ResetPasswordService resetPasswordService, PasswordValidator PasswordValidator) {
+    public AuthUseCase(AuthService authService, JwtService jwtService, ResetPasswordService resetPasswordService, PasswordValidator passwordValidator) {
         this.authService = authService;
         this.jwtService = jwtService;
         this.resetPasswordService = resetPasswordService;
-        this.PasswordValidator = PasswordValidator;
+        this.passwordValidator = passwordValidator;
     }
 
     public LoginResponseDTO login(LoginRequestDTO request) {
@@ -30,7 +30,7 @@ public class AuthUseCase {
         if (user == null) {
             throw new IllegalArgumentException("User not found");
         }
-        if (!PasswordValidator.validate(request.password(), user.password())) {
+        if (!passwordValidator.validate(request.password(), user.password())) {
             throw new IllegalArgumentException("Invalid password");
         }
         String token = jwtService.generateToken(user);
@@ -48,7 +48,7 @@ public class AuthUseCase {
         if (passenger == null) {
             throw new IllegalArgumentException("Passenger not found");
         }
-        if (!PasswordValidator.validate(request.password(), passenger.password())) {
+        if (!passwordValidator.validate(request.password(), passenger.password())) {
             throw new IllegalArgumentException("Invalid password");
         }
         String token = jwtService.generateToken(passenger);

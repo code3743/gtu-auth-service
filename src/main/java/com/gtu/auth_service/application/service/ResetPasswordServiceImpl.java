@@ -37,8 +37,8 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     @Value("${reset.links.superadmin}")
     private String superadminResetLink;
 
-    private final String resetExchange = "reset-password.exchange";
-    private final String resetRoutingKey = "reset-password.routingkey";
+    private static final String resetExchange = "reset-password.exchange";
+    private static final String resetRoutingKey = "reset-password.routingkey";
 
     public ResetPasswordServiceImpl(UserClient userClient, PassengerClient passengerClient,
                                    ResetTokenRepository resetTokenRepository, RabbitTemplate rabbitTemplate,

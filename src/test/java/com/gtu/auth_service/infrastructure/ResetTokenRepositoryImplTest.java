@@ -70,7 +70,7 @@ class ResetTokenRepositoryImplTest {
     }
 
     @Test
-    void save_ShouldInvokeJpaRepositorySave() {
+    void save_ShouldInvoke_JpaRepositorySave() {
         ResetToken domainToken = new ResetToken();
         domainToken.setId(3L);
         domainToken.setToken("token789");
