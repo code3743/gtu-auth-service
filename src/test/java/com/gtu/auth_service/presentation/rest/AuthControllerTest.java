@@ -24,6 +24,8 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import java.util.Map;
+
 @ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
@@ -88,7 +90,8 @@ class AuthControllerTest {
                 doNothing().when(authUseCase).resetPasswordRequest("john@example.com");
 
                 mockMvc.perform(post("/reset-password-request")
-                                .param("email", "john@example.com"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString("john@example.com")))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.message").value("Password reset request successful"))
                                 .andExpect(jsonPath("$.data").doesNotExist());
@@ -100,7 +103,8 @@ class AuthControllerTest {
                                 .when(authUseCase).resetPasswordRequest("john@example.com");
 
                 mockMvc.perform(post("/reset-password-request")
-                                .param("email", "john@example.com"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString("john@example.com")))
                                 .andExpect(status().isUnauthorized())
                                 .andExpect(jsonPath("$.status").value(401))
                                 .andExpect(jsonPath("$.error").value("Unauthorized"))
@@ -112,8 +116,8 @@ class AuthControllerTest {
                 doNothing().when(authUseCase).resetPassword("token123", "newPass");
 
                 mockMvc.perform(post("/reset-password")
-                                .param("token", "token123")
-                                .param("newPassword", "newPass"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("token", "token123", "newPassword", "newPass"))))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.message").value("Password reset successful"))
                                 .andExpect(jsonPath("$.data").doesNotExist());
@@ -125,8 +129,8 @@ class AuthControllerTest {
                                 .when(authUseCase).resetPassword("bad-token", "newPass");
 
                 mockMvc.perform(post("/reset-password")
-                                .param("token", "bad-token")
-                                .param("newPassword", "newPass"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(Map.of("token", "bad-token", "newPassword", "newPass"))))
                                 .andExpect(status().isUnauthorized())
                                 .andExpect(jsonPath("$.status").value(401))
                                 .andExpect(jsonPath("$.error").value("Unauthorized"))

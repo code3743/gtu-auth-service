@@ -1,9 +1,12 @@
 package com.gtu.auth_service.presentation.exception;
 
 import com.gtu.auth_service.application.dto.ErrorResponseDTO;
+import com.gtu.auth_service.domain.exception.GeneralException;
 import com.gtu.auth_service.infrastructure.logs.LogPublisher;
 import feign.FeignException;
 import feign.Request;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -98,5 +101,69 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("User not found in remote service", response.getBody().message());
         assertEquals("Not Found", response.getBody().error());
+    }
+
+    @Test
+    void handleGeneralException_ShouldReturnCorrectResponse() {
+        GeneralException ex = new GeneralException("A reset token is already pending", 409);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/reset-password-request");
+
+        ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleHttpException(ex, request);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("A reset token is already pending", response.getBody().message());
+        assertEquals(409, response.getBody().status());
+        assertEquals("Conflict", response.getBody().error());
+    }
+
+    @Test
+    void handleIllegalArgumentException_ShouldNotLog_WhenMessageContainsKnownKeywords() {
+        IllegalArgumentException ex = new IllegalArgumentException("User not found");
+
+        ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleIllegalArgumentException(ex);
+
+        verify(logPublisher, never()).sendLog(anyString(), anyString(), anyString(), anyString(), anyMap());
+        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertEquals("User not found", response.getBody().message());
+    }
+
+    @Test
+    void handleGeneralException_ShouldReturnInternalServerError_WithCriticalSeverity_ForNullPointer() {
+        NullPointerException ex = new NullPointerException("Something was null");
+
+        ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleGeneralException(ex);
+
+        verify(logPublisher, times(1)).sendLog(
+            anyString(),
+            eq("auth-service"),
+            eq("CRITICAL"),
+            eq("Unexpected error occurred"),
+            anyMap()
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("An unexpected error occurred", response.getBody().message());
+        assertEquals("Internal Server Error", response.getBody().error());
+    }
+
+    @Test
+    void handleGeneralException_ShouldReturnInternalServerError_WithCriticalSeverity_ForIllegalState() {
+        IllegalStateException ex = new IllegalStateException("Invalid state");
+
+        ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleGeneralException(ex);
+
+        verify(logPublisher, times(1)).sendLog(
+            anyString(),
+            eq("auth-service"),
+            eq("CRITICAL"),
+            eq("Unexpected error occurred"),
+            anyMap()
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        assertEquals("An unexpected error occurred", response.getBody().message());
+        assertEquals("Internal Server Error", response.getBody().error());
     }
 }

@@ -1,9 +1,12 @@
 package com.gtu.auth_service.presentation.exception;
 
 import com.gtu.auth_service.application.dto.ErrorResponseDTO;
+import com.gtu.auth_service.domain.exception.GeneralException;
 import com.gtu.auth_service.infrastructure.logs.LogPublisher;
 
 import feign.FeignException;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -81,6 +84,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleFeignNotFound(FeignException.NotFound ex) {
         ErrorResponseDTO error = new ErrorResponseDTO("User not found in remote service", HttpStatus.NOT_FOUND.value(), "Not Found");
         return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(GeneralException.class)
+    public ResponseEntity<ErrorResponseDTO> handleHttpException(GeneralException ex, HttpServletRequest request) {
+        ErrorResponseDTO response = new ErrorResponseDTO(
+                ex.getMessage(),
+                ex.getStatusCode(),
+                HttpStatus.valueOf(ex.getStatusCode()).getReasonPhrase()
+        );
+        return new ResponseEntity<>(response, HttpStatus.valueOf(ex.getStatusCode()));
     }
 
 }
