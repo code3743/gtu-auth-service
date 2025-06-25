@@ -9,10 +9,7 @@ import org.springframework.test.context.TestPropertySource;
     "spring.datasource.driver-class-name=org.h2.Driver",
     "spring.datasource.username=sa",
     "spring.datasource.password=",
-    "reset.links.passenger=http://localhost:8080/reset-password",
-    "reset.links.driver=http://localhost:8080/reset-password",
-    "reset.links.admin=http://localhost:8080/reset-password",
-    "reset.links.superadmin=http://localhost:8080/reset-password",
+    "reset.links.base=http://localhost:8080/reset-password",
 })
 @TestPropertySource(properties = "JWT_SECRET=test-secret")
 class AuthServiceApplicationTests {
