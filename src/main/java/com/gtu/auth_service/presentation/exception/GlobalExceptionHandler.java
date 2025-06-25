@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -29,7 +28,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentException(IllegalArgumentException ex) {
 
-        if (!ex.getMessage().matches(".*(User|Role|role|not found|Invalid password|pending|expired).*")) {
+        String message = ex.getMessage().toLowerCase();
+        if (!(message.contains("user") || message.contains("role") || message.contains("not found") || 
+              message.contains("invalid password") || message.contains("pending") || message.contains("expired"))) {
             logPublisher.sendLog(Instant.now().toString(), 
             serviceName, 
             "WARN", 
