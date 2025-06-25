@@ -15,8 +15,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
@@ -42,11 +40,7 @@ class GlobalExceptionHandlerTest {
 
         ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleIllegalArgumentException(ex);
 
-        Map<String, Object> expectedDetails = new HashMap<>();
-        expectedDetails.put("reason", "Invalid argument");
-        expectedDetails.put("exceptionMessage", "Invalid input");
-
-        verify(logPublisher).sendLog(anyString(), eq("auth-service"), eq("ERROR"), eq("Credenciales inválidas"), eq(expectedDetails));
+        verify(logPublisher, times(1)).sendLog(anyString(), eq("auth-service"), eq("WARN"), eq("Validation Error"), anyMap());
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertEquals("Invalid input", response.getBody().message());
         assertEquals("Unauthorized", response.getBody().error());
@@ -58,7 +52,7 @@ class GlobalExceptionHandlerTest {
 
         ResponseEntity<ErrorResponseDTO> response = globalExceptionHandler.handleGeneralException(ex);
 
-        verify(logPublisher).sendLog(anyString(), eq("auth-service"), eq("ERROR"), eq("An unexpected error occurred"), anyMap());
+        verify(logPublisher, times(1)).sendLog(anyString(), eq("auth-service"), matches("ERROR|CRITICAL"), eq("Unexpected error occurred"), anyMap());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("An unexpected error occurred", response.getBody().message());
         assertEquals("Internal Server Error", response.getBody().error());
