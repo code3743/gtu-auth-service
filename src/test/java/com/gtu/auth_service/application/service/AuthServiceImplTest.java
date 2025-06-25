@@ -7,6 +7,8 @@ import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
+import com.gtu.auth_service.infrastructure.logs.LogPublisher;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -24,6 +26,9 @@ class AuthServiceImplTest {
 
     @Mock
     private PassengerClient passengerClient;
+
+    @Mock
+    private LogPublisher logPublisher;
 
     @InjectMocks
     private AuthServiceImpl authService;

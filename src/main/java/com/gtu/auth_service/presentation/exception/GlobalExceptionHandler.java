@@ -11,16 +11,16 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    private final LogPublisher logPublisher;
-
     @Value("${service.name:auth-service}")
     private String serviceName;
+
+    private final LogPublisher logPublisher;
 
     public GlobalExceptionHandler(LogPublisher logPublisher) {
         this.logPublisher = logPublisher;
@@ -28,37 +28,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponseDTO> handleIllegalArgumentException(IllegalArgumentException ex) {
-        
-        // Crear el objeto details
-        Map<String, Object> details = new HashMap<>();
-        details.put("reason", "Invalid argument");
-        details.put("exceptionMessage", ex.getMessage());
 
-        // Tomar la hora del evento y enviar el log
-        String timestamp = Instant.now().toString();
-        logPublisher.sendLog(timestamp, serviceName, "ERROR", "Credenciales inválidas", details);
+        if (!ex.getMessage().matches(".*(User|Role|role|not found|Invalid password|pending|expired).*")) {
+            logPublisher.sendLog(Instant.now().toString(), 
+            serviceName, 
+            "WARN", 
+            "Validation Error", 
+            Map.of("error", ex.getMessage()));
+        }
 
-        // Responder con ErrorResponseDTO
         ErrorResponseDTO error = new ErrorResponseDTO(ex.getMessage(), HttpStatus.UNAUTHORIZED.value(), "Unauthorized");
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGeneralException(Exception ex) {
-        // Crear el objeto details
-        Map<String, Object> details = new HashMap<>();
-        details.put("reason", "Unexpected error");
-        details.put("exceptionMessage", ex.getMessage());
+        String severity = "ERROR";
+        if (ex instanceof NullPointerException || ex instanceof IllegalStateException) {
+            severity = "CRITICAL";
+        }
 
-        // Enviar el log
-        String timestamp = Instant.now().toString();
-        logPublisher.sendLog(timestamp, serviceName, "ERROR", "An unexpected error occurred", details);
+        logPublisher.sendLog(Instant.now().toString(), 
+                            serviceName, 
+                            severity, 
+                            "Unexpected error occurred",
+                            Map.of("error", ex.getMessage()));
 
-        // Responder con ErrorResponseDTO
-        ErrorResponseDTO error = new ErrorResponseDTO("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error");
+        ErrorResponseDTO error = new ErrorResponseDTO("An unexpected error occurred" , HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error");
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
 
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<ErrorResponseDTO> handleFeignException(FeignException ex) {
@@ -66,6 +64,12 @@ public class GlobalExceptionHandler {
         if (status == null) {
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
+
+        logPublisher.sendLog(Instant.now().toString(), 
+                            serviceName, "ERROR", 
+                            "External service communication failed", 
+                            Map.of("status", status.toString(), "error", ex.getMessage()));
+
         ErrorResponseDTO error = new ErrorResponseDTO(ex.getMessage(), status.value(), status.getReasonPhrase());
         return new ResponseEntity<>(error, status);
     }

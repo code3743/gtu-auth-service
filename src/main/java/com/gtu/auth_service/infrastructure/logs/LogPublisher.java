@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
-
 @Component
 public class LogPublisher {
 
@@ -23,31 +22,27 @@ public class LogPublisher {
 
     public LogPublisher(AmqpTemplate amqpTemplate) {
         this.amqpTemplate = amqpTemplate;
-        this.objectMapper = new ObjectMapper(); // Para convertir objetos a JSON
+        this.objectMapper = new ObjectMapper();
     }
 
     public void sendLog(String timestamp, String service, String level, String message, Map<String, Object> details) {
         try {
-            // Crear el objeto log
+            
             Map<String, Object> log = Map.of(
-                "timestamp", timestamp,
-                "service", service,
-                "level", level,
-                "message", message,
-                "details", details
+            "timestamp", timestamp,
+            "service", service,
+            "level", level,
+            "message", message,
+            "details", details
             );
 
-            // Convertir el log a JSON
             String logJson = objectMapper.writeValueAsString(log);
-
-            // Enviar el log al exchange de RabbitMQ
+       
             amqpTemplate.convertAndSend(exchange, routingKey, logJson);
 
-            // Imprimir el log en consola para depuración
-            System.out.println("🧾 Log enviado: " + logJson);
         } catch (Exception e) {
-            System.err.println("❌ Error al enviar el log: " + e.getMessage());
-            e.printStackTrace();
+            e.printStackTrace();      
         }
     }
+
 }

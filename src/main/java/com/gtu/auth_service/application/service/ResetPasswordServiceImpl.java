@@ -8,12 +8,16 @@ import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
 import com.gtu.auth_service.infrastructure.messaging.event.ResetPasswordEvent;
+import com.gtu.auth_service.infrastructure.logs.LogPublisher;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -40,43 +44,59 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     private static final String resetExchange = "reset-password.exchange";
     private static final String resetRoutingKey = "reset-password.routingkey";
 
+    private final LogPublisher logPublisher;
+
     public ResetPasswordServiceImpl(UserClient userClient, PassengerClient passengerClient,
                                    ResetTokenRepository resetTokenRepository, RabbitTemplate rabbitTemplate,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper, LogPublisher logPublisher) {
         this.userClient = userClient;
         this.passengerClient = passengerClient;
         this.resetTokenRepository = resetTokenRepository;
         this.rabbitTemplate = rabbitTemplate;
         this.objectMapper = objectMapper;
+        this.logPublisher = logPublisher;
     }
 
     @Override
     public void requestPasswordReset(String email) {
-        UserServiceResponse target = null;
+        try{
+            UserServiceResponse target = null;
 
-        try {
-            target = userClient.getUserByEmail(email);
-        } catch (Exception e) {
             try {
-                target = passengerClient.getPassengerByEmail(email);
-            } catch (Exception ex) {
-                throw new IllegalArgumentException("No user or passenger found with email: " + email);
+                target = userClient.getUserByEmail(email);
+            } catch (Exception e) {
+                try {
+                    target = passengerClient.getPassengerByEmail(email);
+                } catch (Exception ex) {
+                    throw new IllegalArgumentException("No user or passenger found with email: " + email);
+                }
             }
+            resetTokenRepository.findByEmailAndUsedFalse(email).ifPresent(token -> {
+                throw new IllegalStateException("A reset token is already pending for this email: " + email);
+            });
+
+            String token = UUID.randomUUID().toString();
+            LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(15);
+            ResetToken resetToken = new ResetToken();
+            resetToken.setToken(token);
+            resetToken.setEmail(email);
+            resetToken.setExpiryDate(expiryDate);
+            resetTokenRepository.save(resetToken);
+
+            String resetLink = generateResetLink(target, token);
+            sendResetEmailEvent(email, getRole(target), resetLink);
+            
+        } catch (Exception e) {
+
+            logPublisher.sendLog(
+                Instant.now().toString(),
+                "auth-service",
+                "ERROR",
+                "Failed to request password reset",
+                Map.of("email", email, "error", e.getMessage())
+            );
+            throw new IllegalStateException("Failed to request password reset: " + e.getMessage(), e);
         }
-        resetTokenRepository.findByEmailAndUsedFalse(email).ifPresent(token -> {
-            throw new IllegalStateException("A reset token is already pending for this email: " + email);
-        });
-
-        String token = UUID.randomUUID().toString();
-        LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(15);
-        ResetToken resetToken = new ResetToken();
-        resetToken.setToken(token);
-        resetToken.setEmail(email);
-        resetToken.setExpiryDate(expiryDate);
-        resetTokenRepository.save(resetToken);
-
-        String resetLink = generateResetLink(target, token);
-        sendResetEmailEvent(email, getRole(target), resetLink);
     }
 
     @Override
@@ -110,34 +130,61 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
         try {
             String message = objectMapper.writeValueAsString(event);
             rabbitTemplate.convertAndSend(resetExchange, resetRoutingKey, message);
+
+            logPublisher.sendLog(
+            Instant.now().toString(),
+            "auth-service",
+            "INFO",
+            "Reset email event sent successfully",
+            Map.of("email", to, "role", role.name(), "resetLink", resetLink)
+        );
         } catch (Exception e) {
+            logPublisher.sendLog(
+            Instant.now().toString(),
+            "auth-service",
+            "ERROR",
+            "Failed to send reset email event",
+            Map.of("email", to, "role", role.name(), "resetLink", resetLink, "error", e.getMessage())
+            );
             throw new RuntimeException("Failed to send reset email event: " + e.getMessage());
         }
     }
 
     @Override
     public void resetPassword(String token, String newPassword) {
-        ResetToken resetToken = resetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token"));
+        try{
+            ResetToken resetToken = resetTokenRepository.findByToken(token)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token"));
 
-        if (resetToken.getExpiryDate().isBefore(LocalDateTime.now()) || resetToken.isUsed()) {
-            throw new IllegalArgumentException("Token has expired or already used");
-        }
-
-        Long userId = getUserIdByEmail(resetToken.getEmail());
-        if (userId != null) {
-            userClient.resetPassword(userId, newPassword);
-        } else {
-            Long passengerId = getPassengerIdByEmail(resetToken.getEmail());
-            if (passengerId != null) {
-                passengerClient.resetPassword(passengerId, newPassword);
-            } else {
-                throw new IllegalArgumentException("No user or passenger found with email: " + resetToken.getEmail());
+            if (resetToken.getExpiryDate().isBefore(LocalDateTime.now()) || resetToken.isUsed()) {
+                throw new IllegalArgumentException("Token has expired or already used");
             }
-        }
 
-        resetToken.setUsed(true);
-        resetTokenRepository.save(resetToken);
+            Long userId = getUserIdByEmail(resetToken.getEmail());
+            if (userId != null) {
+                userClient.resetPassword(userId, newPassword);
+            } else {
+                Long passengerId = getPassengerIdByEmail(resetToken.getEmail());
+                if (passengerId != null) {
+                    passengerClient.resetPassword(passengerId, newPassword);
+                } else {
+                    throw new IllegalArgumentException("No user or passenger found with email: " + resetToken.getEmail());
+                }
+            }
+
+            resetToken.setUsed(true);
+            resetTokenRepository.save(resetToken);
+
+        } catch (Exception e) {
+            logPublisher.sendLog(
+                Instant.now().toString(),
+                "auth-service",
+                "ERROR",
+                "Failed to reset password",
+                Map.of("token", token, "error", e.getMessage())
+            );
+            throw e;
+        }
     }
 
     public Long getUserIdByEmail(String email) {
