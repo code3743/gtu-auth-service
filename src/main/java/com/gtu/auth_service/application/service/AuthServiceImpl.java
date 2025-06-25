@@ -82,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
         if (newPassenger == null) throw new  IllegalArgumentException("Failed to register passenger");
 
         return new AuthUser(
-                null,
+                newPassenger.getId(),
                 newPassenger.getName(),
                 newPassenger.getEmail(),
                 newPassenger.getPassword(),
