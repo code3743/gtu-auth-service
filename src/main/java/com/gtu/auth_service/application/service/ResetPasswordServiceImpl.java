@@ -1,5 +1,15 @@
 package com.gtu.auth_service.application.service;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gtu.auth_service.domain.model.ResetToken;
 import com.gtu.auth_service.domain.model.Role;
 import com.gtu.auth_service.domain.repository.ResetTokenRepository;
@@ -7,18 +17,9 @@ import com.gtu.auth_service.domain.service.ResetPasswordService;
 import com.gtu.auth_service.infrastructure.client.PassengerClient;
 import com.gtu.auth_service.infrastructure.client.UserClient;
 import com.gtu.auth_service.infrastructure.client.dto.UserServiceResponse;
-import com.gtu.auth_service.infrastructure.messaging.event.ResetPasswordEvent;
 import com.gtu.auth_service.infrastructure.logs.LogPublisher;
-
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.UUID;
+import com.gtu.auth_service.infrastructure.messaging.event.ResetPasswordEvent;
+import com.gtu.auth_service.domain.exception.GeneralException;
 
 @Service
 public class ResetPasswordServiceImpl implements ResetPasswordService {
@@ -29,17 +30,8 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     private final RabbitTemplate rabbitTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${reset.links.passenger}")
-    private String passengerResetLink;
-
-    @Value("${reset.links.driver}")
-    private String driverResetLink;
-
-    @Value("${reset.links.admin}")
-    private String adminResetLink;
-
-    @Value("${reset.links.superadmin}")
-    private String superadminResetLink;
+    @Value("${reset.links.base}")
+    private String resetLinkBase;
 
     private static final String RESET_EXCHANGE = "reset-password.exchange";
     private static final String RESET_ROUTING_KEY = "reset-password.routingkey";
@@ -63,55 +55,49 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
 
     @Override
     public void requestPasswordReset(String email) {
-        try{
-            UserServiceResponse target = null;
+        UserServiceResponse target = null;
 
-            try {
-                target = userClient.getUserByEmail(email);
-            } catch (Exception e) {
-                try {
-                    target = passengerClient.getPassengerByEmail(email);
-                } catch (Exception ex) {
-                    throw new IllegalArgumentException("No user or passenger found with email: " + email);
-                }
+        try {
+            target = userClient.getUserByEmail(email);
+
+            if (target.getId() == null) {
+                target = passengerClient.getPassengerByEmail(email);
             }
-            resetTokenRepository.findByEmailAndUsedFalse(email).ifPresent(token -> {
-                throw new IllegalStateException("A reset token is already pending for this email: " + email);
-            });
-
-            String token = UUID.randomUUID().toString();
-            LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(15);
-            ResetToken resetToken = new ResetToken();
-            resetToken.setToken(token);
-            resetToken.setEmail(email);
-            resetToken.setExpiryDate(expiryDate);
-            resetTokenRepository.save(resetToken);
-
-            String resetLink = generateResetLink(target, token);
-            sendResetEmailEvent(email, getRole(target), resetLink);
-            
         } catch (Exception e) {
-
             logPublisher.sendLog(
                 Instant.now().toString(),
                 SERVICE_NAME,
                 LOG_LEVEL_ERROR,
-                "Failed to request password reset",
+                "Error fetching user or passenger from clients",
                 Map.of(LOG_KEY_EMAIL, email, LOG_KEY_ERROR, e.getMessage())
             );
-            throw new IllegalStateException("Failed to request password reset: " + e.getMessage(), e);
+            throw new GeneralException(e.getMessage(), 500);
         }
+
+        if (target.getId() == null) {
+            throw new GeneralException("No user or passenger found with email: " + email, 404);
+        }
+
+        resetTokenRepository.findByEmailAndUsedFalse(email).ifPresent(token -> {
+            throw new GeneralException("A reset token is already pending for this email: " + email, 409);
+        });
+
+        String token = UUID.randomUUID().toString();
+        LocalDateTime expiryDate = LocalDateTime.now().plusMinutes(15);
+
+        ResetToken resetToken = new ResetToken();
+        resetToken.setToken(token);
+        resetToken.setEmail(email);
+        resetToken.setExpiryDate(expiryDate);
+        resetTokenRepository.save(resetToken);
+
+        String resetLink = generateResetLink(target, token);
+        sendResetEmailEvent(email, getRole(target), resetLink);
     }
 
     @Override
     public String generateResetLink(UserServiceResponse user, String token) {
-        String baseUrl = user.getRole() != null ? switch (user.getRole().toUpperCase()) {
-            case "DRIVER" -> driverResetLink;
-            case "ADMIN" -> adminResetLink;
-            case "SUPERADMIN" -> superadminResetLink;
-            default -> throw new IllegalArgumentException("Unsupported role: " + user.getRole());
-        } : passengerResetLink;
-        return baseUrl + "?token=" + token;
+        return resetLinkBase + "?token=" + token; 
     }
 
     private Role getRole(UserServiceResponse user) {
