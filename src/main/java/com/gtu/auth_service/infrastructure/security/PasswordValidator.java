@@ -13,8 +13,7 @@ public class PasswordValidator {
 
     public boolean validate(String rawPassword, String encodedPassword) {
         try {
-            boolean matches = passwordEncoder.matches(rawPassword, encodedPassword);
-            return matches;
+            return passwordEncoder.matches(rawPassword, encodedPassword);
         } catch (Exception e) {
             return false;
         }
