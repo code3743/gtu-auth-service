@@ -11,8 +11,8 @@ import java.lang.reflect.Field;
 import java.util.Base64;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JwtServiceImplTest {
     @InjectMocks
@@ -34,9 +34,8 @@ class JwtServiceImplTest {
     void generateToken_ShouldReturnValidJwtToken_WhenUserProvided() {
         AuthUser user = new AuthUser(1L, "John Doe", "john.doe@example.com", "password", Role.DRIVER);
         String token = jwtService.generateToken(user);
-
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
     }
 
     @Test
@@ -49,8 +48,7 @@ class JwtServiceImplTest {
     void generateToken_WhenFieldsAreNull_ShouldStillGenerateToken() {
         AuthUser user = new AuthUser(null, null, null, null, Role.DRIVER);
         String token = jwtService.generateToken(user);
-
         assertNotNull(token);
-        assertTrue(token.length() > 0);
+        assertFalse(token.isEmpty());
     }
 }

@@ -92,6 +92,26 @@ class ResetPasswordServiceImplTest {
     }
 
     @Test
+    void generateResetLink_ShouldReturnAdminResetLink() {
+        UserServiceResponse user = new UserServiceResponse(1L, "Admin", "admin@example.com", "pass", "ADMIN");
+        String token = "def456";
+
+        String result = resetPasswordService.generateResetLink(user, token);
+
+        assertEquals("http://reset/admin?token=def456", result);
+    }
+
+    @Test
+    void generateResetLink_ShouldReturnSuperadminResetLink() {
+        UserServiceResponse user = new UserServiceResponse(1L, "Super", "super@example.com", "pass", "SUPERADMIN");
+        String token = "ghi789";
+
+        String result = resetPasswordService.generateResetLink(user, token);
+
+        assertEquals("http://reset/superadmin?token=ghi789", result);
+    }
+
+    @Test
     void generateResetLink_ShouldThrowException_ForInvalidRole() {
         UserServiceResponse user = new UserServiceResponse(1L, "Fake", "fake@example.com", "pass", "HACKER");
 
@@ -163,9 +183,9 @@ class ResetPasswordServiceImplTest {
         UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
         when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
         when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.empty());
-        
         doNothing().when(rabbitTemplate).convertAndSend(anyString(), anyString(), anyString());
-        resetPasswordService.requestPasswordReset("john@example.com");
+
+        assertDoesNotThrow(() -> resetPasswordService.requestPasswordReset("john@example.com"));
 
         verify(resetTokenRepository, times(1)).save(any());
     }
@@ -174,9 +194,23 @@ class ResetPasswordServiceImplTest {
     void requestPasswordReset_ShouldThrowException_WhenTokenExists() {
         UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
         when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
-        when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.of(new ResetToken()));
+        when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com"))
+            .thenReturn(Optional.of(new ResetToken()));
 
-        assertThrows(IllegalStateException.class, () -> resetPasswordService.requestPasswordReset("john@example.com"));
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
+                resetPasswordService.requestPasswordReset("john@example.com"));
+
+        assertTrue(ex.getMessage().contains("A reset token is already pending"));
+    }
+
+    @Test
+    void requestPasswordReset_ShouldThrowException_WhenSaveFails() {
+        UserServiceResponse user = new UserServiceResponse(1L, "John", "john@example.com", "pass", "DRIVER");
+        when(userClient.getUserByEmail("john@example.com")).thenReturn(user);
+        when(resetTokenRepository.findByEmailAndUsedFalse("john@example.com")).thenReturn(Optional.empty());
+        doThrow(new RuntimeException("Save failed")).when(resetTokenRepository).save(any());
+
+        assertThrows(RuntimeException.class, () -> resetPasswordService.requestPasswordReset("john@example.com"));
     }
 
     @Test
@@ -203,6 +237,30 @@ class ResetPasswordServiceImplTest {
     }
 
     @Test
+    void resetPassword_ShouldThrowException_WhenTokenExpired() {
+        ResetToken token = new ResetToken(1L, "expiredToken", "user@example.com",
+                LocalDateTime.now().minusMinutes(1), false);
+        when(resetTokenRepository.findByToken("expiredToken")).thenReturn(Optional.of(token));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                resetPasswordService.resetPassword("expiredToken", "newPass"));
+        
+        assertTrue(ex.getMessage().contains("Token has expired"));
+    }
+
+    @Test
+    void resetPassword_ShouldThrowException_WhenTokenUsed() {
+        ResetToken token = new ResetToken(1L, "usedToken", "user@example.com",
+                LocalDateTime.now().plusMinutes(5), true);
+        when(resetTokenRepository.findByToken("usedToken")).thenReturn(Optional.of(token));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                resetPasswordService.resetPassword("usedToken", "newPass"));
+
+        assertTrue(ex.getMessage().contains("Token has expired or already used"));
+    }
+
+    @Test
     void getPassengerIdByEmail_ShouldReturnId_WhenPassengerExists() {
         UserServiceResponse passenger = new UserServiceResponse(5L, "Maria", "maria@example.com", "pass", null);
         when(passengerClient.getPassengerByEmail("maria@example.com")).thenReturn(passenger);
@@ -220,4 +278,6 @@ class ResetPasswordServiceImplTest {
 
         assertNull(result);
     }
+
+    
 }
