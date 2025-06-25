@@ -13,6 +13,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ResetTokenRepositoryImplTest {
@@ -37,6 +39,36 @@ class ResetTokenRepositoryImplTest {
 
         assertTrue(result.isPresent());
         assertEquals(1L, result.get().getId());
+        assertEquals("token123", result.get().getToken());
+    }
+
+    @Test
+    void findByToken_ShouldReturnEmpty_WhenTokenNotExists() {
+        when(jpaResetTokenRepository.findByToken("nonexistent")).thenReturn(Optional.empty());
+
+        Optional<ResetToken> result = resetTokenRepository.findByToken("nonexistent");
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void findByEmail_ShouldReturnResetToken_WhenExists() {
+        ResetTokenEntity entity = new ResetTokenEntity(2L, "token456", "email2@example.com", LocalDateTime.now(), false);
+        when(jpaResetTokenRepository.findByEmailAndUsedFalse("email2@example.com")).thenReturn(Optional.of(entity));
+
+        Optional<ResetToken> result = resetTokenRepository.findByEmailAndUsedFalse("email2@example.com");
+
+        assertTrue(result.isPresent());
+        assertEquals("token456", result.get().getToken());
+    }
+
+    @Test
+    void findByEmail_ShouldReturnEmpty_WhenEmailNotExists() {
+        when(jpaResetTokenRepository.findByEmailAndUsedFalse("nonexistent@example.com")).thenReturn(Optional.empty());
+
+        Optional<ResetToken> result = resetTokenRepository.findByEmailAndUsedFalse("nonexistent@example.com");
+
+        assertFalse(result.isPresent());
     }
 
     @Test
@@ -59,17 +91,6 @@ class ResetTokenRepositoryImplTest {
     }
 
     @Test
-    void findByEmailAndUsedFalse_ShouldReturnResetToken_WhenExists() {
-        ResetTokenEntity entity = new ResetTokenEntity(2L, "token456", "email2@example.com", LocalDateTime.now(), false);
-        when(jpaResetTokenRepository.findByEmailAndUsedFalse("email2@example.com")).thenReturn(Optional.of(entity));
-
-        Optional<ResetToken> result = resetTokenRepository.findByEmailAndUsedFalse("email2@example.com");
-
-        assertTrue(result.isPresent());
-        assertEquals("token456", result.get().getToken());
-    }
-
-    @Test
     void save_ShouldInvoke_JpaRepositorySave() {
         ResetToken domainToken = new ResetToken();
         domainToken.setId(3L);
@@ -78,8 +99,11 @@ class ResetTokenRepositoryImplTest {
         domainToken.setExpiryDate(LocalDateTime.now());
         domainToken.setUsed(false);
 
+        ResetTokenEntity entity = new ResetTokenEntity(3L, "token789", "save@example.com", domainToken.getExpiryDate(), false);
+        when(jpaResetTokenRepository.save(any(ResetTokenEntity.class))).thenReturn(entity);
+
         resetTokenRepository.save(domainToken);
+
+        verify(jpaResetTokenRepository).save(any(ResetTokenEntity.class));
     }
-
-
 }

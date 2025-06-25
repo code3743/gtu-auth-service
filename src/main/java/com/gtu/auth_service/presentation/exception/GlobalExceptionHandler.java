@@ -21,6 +21,8 @@ public class GlobalExceptionHandler {
 
     private final LogPublisher logPublisher;
 
+    private static final String LOG_KEY_ERROR = "error";
+
     public GlobalExceptionHandler(LogPublisher logPublisher) {
         this.logPublisher = logPublisher;
     }
@@ -35,7 +37,7 @@ public class GlobalExceptionHandler {
             serviceName, 
             "WARN", 
             "Validation Error", 
-            Map.of("error", ex.getMessage()));
+            Map.of(LOG_KEY_ERROR, ex.getMessage()));
         }
 
         ErrorResponseDTO error = new ErrorResponseDTO(ex.getMessage(), HttpStatus.UNAUTHORIZED.value(), "Unauthorized");
@@ -53,7 +55,7 @@ public class GlobalExceptionHandler {
                             serviceName, 
                             severity, 
                             "Unexpected error occurred",
-                            Map.of("error", ex.getMessage()));
+                            Map.of(LOG_KEY_ERROR, ex.getMessage()));
 
         ErrorResponseDTO error = new ErrorResponseDTO("An unexpected error occurred" , HttpStatus.INTERNAL_SERVER_ERROR.value(), "Internal Server Error");
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -69,7 +71,7 @@ public class GlobalExceptionHandler {
         logPublisher.sendLog(Instant.now().toString(), 
                             serviceName, "ERROR", 
                             "External service communication failed", 
-                            Map.of("status", status.toString(), "error", ex.getMessage()));
+                            Map.of("status", status.toString(), LOG_KEY_ERROR, ex.getMessage()));
 
         ErrorResponseDTO error = new ErrorResponseDTO(ex.getMessage(), status.value(), status.getReasonPhrase());
         return new ResponseEntity<>(error, status);

@@ -41,8 +41,12 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
     @Value("${reset.links.superadmin}")
     private String superadminResetLink;
 
-    private static final String resetExchange = "reset-password.exchange";
-    private static final String resetRoutingKey = "reset-password.routingkey";
+    private static final String RESET_EXCHANGE = "reset-password.exchange";
+    private static final String RESET_ROUTING_KEY = "reset-password.routingkey";
+    private static final String SERVICE_NAME = "auth-service";
+    private static final String LOG_LEVEL_ERROR = "ERROR";
+    private static final String LOG_KEY_EMAIL = "email";
+    private static final String LOG_KEY_ERROR = "error";
 
     private final LogPublisher logPublisher;
 
@@ -90,10 +94,10 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
 
             logPublisher.sendLog(
                 Instant.now().toString(),
-                "auth-service",
-                "ERROR",
+                SERVICE_NAME,
+                LOG_LEVEL_ERROR,
                 "Failed to request password reset",
-                Map.of("email", email, "error", e.getMessage())
+                Map.of(LOG_KEY_EMAIL, email, LOG_KEY_ERROR, e.getMessage())
             );
             throw new IllegalStateException("Failed to request password reset: " + e.getMessage(), e);
         }
@@ -129,22 +133,22 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
         ResetPasswordEvent event = new ResetPasswordEvent(to, role, resetLink);
         try {
             String message = objectMapper.writeValueAsString(event);
-            rabbitTemplate.convertAndSend(resetExchange, resetRoutingKey, message);
+            rabbitTemplate.convertAndSend(RESET_EXCHANGE, RESET_ROUTING_KEY, message);
 
             logPublisher.sendLog(
             Instant.now().toString(),
-            "auth-service",
+            SERVICE_NAME,
             "INFO",
             "Reset email event sent successfully",
-            Map.of("email", to, "role", role.name(), "resetLink", resetLink)
+            Map.of(LOG_KEY_EMAIL, to, "role", role.name(), "resetLink", resetLink)
         );
         } catch (Exception e) {
             logPublisher.sendLog(
             Instant.now().toString(),
-            "auth-service",
-            "ERROR",
+            SERVICE_NAME,
+            LOG_LEVEL_ERROR,
             "Failed to send reset email event",
-            Map.of("email", to, "role", role.name(), "resetLink", resetLink, "error", e.getMessage())
+            Map.of(LOG_KEY_EMAIL, to, "role", role.name(), "resetLink", resetLink, LOG_KEY_ERROR, e.getMessage())
             );
             throw new RuntimeException("Failed to send reset email event: " + e.getMessage());
         }
@@ -178,10 +182,10 @@ public class ResetPasswordServiceImpl implements ResetPasswordService {
         } catch (Exception e) {
             logPublisher.sendLog(
                 Instant.now().toString(),
-                "auth-service",
-                "ERROR",
+                SERVICE_NAME,
+                LOG_LEVEL_ERROR,
                 "Failed to reset password",
-                Map.of("token", token, "error", e.getMessage())
+                Map.of("token", token, LOG_KEY_ERROR, e.getMessage())
             );
             throw e;
         }
