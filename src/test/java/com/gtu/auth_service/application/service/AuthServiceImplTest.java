@@ -93,8 +93,7 @@ class AuthServiceImplTest {
 
     @Test
     void authenticate_ShouldThrowUnsupportedOperationException() {
-        assertThrows(UnsupportedOperationException.class, 
-            () -> authService.authenticate(new LoginRequestDTO("email", "pass")));
+        assertThrows(UnsupportedOperationException.class, () -> authService.authenticate(new LoginRequestDTO("email", "pass")));
     }
 
     @Test

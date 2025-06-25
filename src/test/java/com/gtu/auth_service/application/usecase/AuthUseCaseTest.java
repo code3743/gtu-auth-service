@@ -36,7 +36,7 @@ class AuthUseCaseTest {
     private AuthUseCase authUseCase;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
     }
 
